@@ -1,0 +1,8 @@
+{
+  "name": "Śmieci ICS",
+  "render_readme": true,
+  "domains": ["sensor"],
+  "homeassistant": "2023.8.0",
+  "country": ["PL"],
+  "iot_class": "local_polling"
+}
