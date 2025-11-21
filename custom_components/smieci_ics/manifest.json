@@ -1,0 +1,11 @@
+{
+  "domain": "smieci_ics",
+  "name": "Śmieci ICS",
+  "version": "1.0.0",
+  "requirements": ["ics>=0.7.2", "aiofiles>=23.0.0"],
+  "dependencies": [],
+  "codeowners": ["@lukasz"],
+  "config_flow": true,
+  "documentation": "https://github.com/Lukasz1982pl/smieci-harmonogram",
+  "iot_class": "local_polling"
+}
