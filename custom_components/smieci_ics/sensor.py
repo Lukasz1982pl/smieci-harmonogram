@@ -7,6 +7,7 @@ from ics import Calendar
 import os
 import logging
 import aiofiles
+from datetime import datetime
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -38,6 +39,9 @@ class SmieciSensor(SensorEntity):
 
     async def async_update(self):
         try:
+            _LOGGER.info("=== AKTUALIZACJA SENSORA %s ===", self._name)
+            _LOGGER.info("Słowo kluczowe: '%s'", self.slowo_kluczowe)
+            
             if not self.plik_ics:
                 self._state = "Brak pliku ICS"
                 self._next_event = None
@@ -54,31 +58,63 @@ class SmieciSensor(SensorEntity):
             async with aiofiles.open(path, "r", encoding="utf-8") as f:
                 ics_text = await f.read()
 
-            calendar = Calendar(ics_text)
+            calendars = list(Calendar.parse_multiple(ics_text))
             now = dt_util.now()
+            _LOGGER.info("AKTUALNA DATA: %s", now.date())
+            
             next_event = None
+            found_today = False
 
-            for event in calendar.events:
-                event_name_lower = event.name.lower()
-                if self.slowo_kluczowe in event_name_lower:
-                    event_time = event.begin.datetime
+            for calendar in calendars:
+                for event in calendar.events:
+                    event_name_lower = event.name.lower()
+                    _LOGGER.debug("Wydarzenie: '%s'", event.name)
                     
-                    if event_time.tzinfo is None:
-                        event_time = event_time.replace(tzinfo=now.tzinfo)
-                    else:
-                        event_time = event_time.astimezone(now.tzinfo)
+                    # SPRAWDZENIE CZY WYDARZENIE PASUJE - POPRAWIONE
+                    matches_keyword = self.slowo_kluczowe in event_name_lower
                     
-                    if event_time >= now:
-                        if next_event is None or event_time < next_event:
+                    # Dla sortowane - sprawdź też "segregowanych" jeśli szukasz "sortowane"
+                    if self._name.lower() == "sortowane" and not matches_keyword:
+                        matches_keyword = "segregowanych" in event_name_lower
+                    
+                    if matches_keyword:
+                        _LOGGER.info("ZNALEZIONO PASUJĄCE WYDARZENIE: %s", event.name)
+                        
+                        event_time = event.begin.datetime
+                        
+                        # Dla wydarzeń całodniowych
+                        if hasattr(event.begin, 'value') and event.begin.value == 'DATE':
+                            event_time = datetime(event_time.year, event_time.month, event_time.day)
+                        
+                        # Konwersja strefy czasowej
+                        if event_time.tzinfo is None:
+                            event_time = event_time.replace(tzinfo=now.tzinfo)
+                        else:
+                            event_time = event_time.astimezone(now.tzinfo)
+                        
+                        _LOGGER.info("Data wydarzenia: %s", event_time.date())
+                        
+                        # Sprawdź czy to dzisiaj
+                        if event_time.date() == now.date():
+                            found_today = True
+                            _LOGGER.info("-> DZISIAJ JEST WYWÓZ!")
+                        
+                        # Znajdź następne wydarzenie
+                        if event_time >= now and (next_event is None or event_time < next_event):
                             next_event = event_time
+                            _LOGGER.info("-> NAJBLIŻSZE WYDARZENIE: %s", next_event.date())
 
+            # Ustaw stan
+            self._state = "Tak" if found_today else "Nie"
+            _LOGGER.info("USTAWIONO STAN: %s", self._state)
+
+            # Ustaw następną datę
             if next_event:
-                is_today = next_event.date() == now.date()
-                self._state = "Tak" if is_today else "Nie"
                 self._next_event = next_event.strftime("%Y-%m-%d")
+                _LOGGER.info("NASTĘPNY WYWÓZ: %s", self._next_event)
             else:
-                self._state = "Nie"
                 self._next_event = None
+                _LOGGER.info("BRAK NASTĘPNEGO WYDARZENIA")
 
         except Exception as e:
             _LOGGER.error("Błąd podczas aktualizacji sensora %s: %s", self._name, str(e))
