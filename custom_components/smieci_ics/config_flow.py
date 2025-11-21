@@ -17,13 +17,13 @@ class SmieciICSConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             if not errors:
                 config_dir = self.hass.config.config_dir
                 path = os.path.join(config_dir, "www", user_input["plik_ics"])
-
+                
                 if not os.path.isfile(path):
                     errors["plik_ics"] = "Plik nie istnieje w folderze /config/www/"
 
             if not errors:
                 return self.async_create_entry(
-                    title=user_input["nazwa"],
+                    title=user_input["nazwa"], 
                     data=user_input
                 )
 
@@ -36,7 +36,7 @@ class SmieciICSConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         })
 
         return self.async_show_form(
-            step_id="user",
+            step_id="user", 
             data_schema=schema,
             errors=errors
         )
