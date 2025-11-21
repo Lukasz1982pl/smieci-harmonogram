@@ -1,0 +1,2 @@
+Jest to integracja do home assistant która w prosty sposób integruje harmonogram wywozu śmieci. Instalacja przez hacks należy dodać ten gihub do niestandardowej integracji po czym zainstalować.
+W urządzeniach dodajemy integrację śmieci_ics i uzupełniamy nazwa następnie nazwa plików ics(muszą być w /www/) słowo klucz do wyszukania dat wywozu śmieci ,godzina przypomnienia oraz urządzienie na które ma być wysłane przypomnienie.
